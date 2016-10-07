@@ -1,7 +1,8 @@
-var sideNav = {
-  templateUrl: './side-nav.html'
+var hero = {
+  templateUrl: './hero.html',
+  controller: 'AppCtrl'
 };
 
 angular
   .module('app')
-  .component('sideNav', sideNav);
+  .component('hero', hero);

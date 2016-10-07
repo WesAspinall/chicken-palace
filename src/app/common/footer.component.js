@@ -1,5 +1,6 @@
 var footer = {
-  templateUrl: './footer.html'
+  templateUrl: './footer.html',
+  controller: 'AppCtrl'
 }
 
 angular

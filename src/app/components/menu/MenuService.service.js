@@ -1,8 +1,8 @@
-function MainService($http) {
+function MenuService($http) {
 
 
 }
 
 angular
-  .module('components.main')
-  .service('MainService', MainService);
+  .module('components.menu')
+  .service('MenuService', MenuService);

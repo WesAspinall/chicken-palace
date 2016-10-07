@@ -1,5 +1,6 @@
 var app = {
-  templateUrl: './app.html'
+  templateUrl: './app.html',
+  controller: 'AppCtrl'
 }
 
 angular
@@ -9,7 +10,7 @@ angular
     $urlRouterProvider.otherwise('/')
     $stateProvider
       .state('app', {
-       redirectTo: 'main',
+       redirectTo: 'home',
        url:'/',
        component: 'app'
       })
