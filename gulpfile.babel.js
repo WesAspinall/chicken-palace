@@ -8,7 +8,7 @@ import sass from 'gulp-sass';
 import yargs from 'yargs';
 import ngAnnotate from 'gulp-ng-annotate';
 import templateCache from 'gulp-angular-templatecache';
-import server from 'browser-sync';
+import webserver from 'gulp-webserver';
 import del from 'del';
 import path from 'path';
 import child from 'child_process';
@@ -36,8 +36,6 @@ const paths = {
     `${root}/img/**/*`
   ]
 };
-
-server.create();
 
 gulp.task('clean', cb => del(paths.dist + '**/*', cb));
 
@@ -83,15 +81,23 @@ gulp.task('scripts', ['modules'], () => {
     .pipe(gulp.dest(paths.dist + 'js/'));
 });
 
-gulp.task('serve', () => {
-  return server.init({
-    files: [`${paths.dist}/**`],
-    port: 4000,
-    server: {
-      baseDir: paths.dist
-    }
-  });
+// localhost: 8000
+gulp.task('serve', function() {
+    gulp.src(paths.dist)
+        .pipe(webserver({
+            livereload: {
+                enable: true, // need this set to true to enable livereload
+                filter: function(fileName) {
+                    if (fileName.match(/.map$/)) { // exclude all source maps from livereload 
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }
+            }
+        }));
 });
+
 
 gulp.task('copy', ['clean'], () => {
   return gulp.src(paths.static, { base: 'src' })
