@@ -1,7 +1,7 @@
 var menu = {
   templateUrl: './menu.html',
   controller: 'MenuCtrl'
-}
+};
 
 angular
   .module('components.menu')

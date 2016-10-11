@@ -1,7 +1,7 @@
 var home = {
   templateUrl: './home.html',
   controller: 'HomeCtrl'
-}
+};
 
 angular
   .module('components.home')

@@ -3,15 +3,21 @@ import concat from 'gulp-concat';
 import wrap from 'gulp-wrap';
 import uglify from 'gulp-uglify';
 import htmlmin from 'gulp-htmlmin';
+import htmlhint from 'gulp-htmlhint';
+import eslint from 'gulp-eslint';
 import gulpif from 'gulp-if';
 import sass from 'gulp-sass';
 import yargs from 'yargs';
 import ngAnnotate from 'gulp-ng-annotate';
 import templateCache from 'gulp-angular-templatecache';
-import webserver from 'gulp-webserver';
+import server from 'browser-sync';
 import del from 'del';
 import path from 'path';
 import child from 'child_process';
+
+
+import chalk from 'chalk';
+import notify from 'gulp-notify';
 
 
 const exec = child.exec;
@@ -26,8 +32,6 @@ const paths = {
   modules: [
     'angular/angular.js',
     'angular-ui-router/release/angular-ui-router.js',
-    'firebase/firebase.js',
-    'angularfire/dist/angularfire.js',
     'angular-loading-bar/build/loading-bar.min.js'
   ],
   static: [
@@ -37,7 +41,37 @@ const paths = {
   ]
 };
 
-gulp.task('clean', cb => del(paths.dist + '**/*', cb));
+const handleError = function(err) {
+    notify.onError("Error, check terminal for details.")(err);
+    console.log(chalk.white.bgRed(' ------------------------------ '));
+    console.log(chalk.white(err.message));
+    console.log(chalk.white.bgRed(' ------------------------------ '));
+    this.emit('end');
+}
+
+gulp.task('styles', () => {
+  return gulp.src(paths.styles)
+    .pipe(sass({outputStyle: 'compressed'}))
+    .on('error', handleError)
+    .pipe(gulp.dest(paths.dist + 'css/'));
+});
+
+//linting
+gulp.task('style:js', () => {
+    return gulp.src('./src/**/*.js')
+        .pipe(eslint())
+        .pipe(eslint.format())
+});
+
+gulp.task('hint:html', () => {
+    return gulp.src('./src/**/*.html')
+        .pipe(htmlhint('.htmlhintrc'))
+        .pipe(htmlhint.failReporter());
+});
+
+//end linting
+
+
 
 gulp.task('templates', () => {
   return gulp.src(paths.templates)
@@ -55,17 +89,10 @@ gulp.task('templates', () => {
 gulp.task('modules', ['templates'], () => {
   return gulp.src(paths.modules.map(item => 'node_modules/' + item))
     .pipe(concat('vendor.js'))
+    .on('error', handleError)
     .pipe(gulpif(argv.deploy, uglify()))
     .pipe(gulp.dest(paths.dist + 'js/'));
 });
-
-gulp.task('styles', () => {
-  return gulp.src(paths.styles)
-    .pipe(sass({outputStyle: 'compressed'}))
-    .pipe(gulp.dest(paths.dist + 'css/'));
-});
-
-
 
 gulp.task('scripts', ['modules'], () => {
   return gulp.src([
@@ -74,6 +101,7 @@ gulp.task('scripts', ['modules'], () => {
       ...paths.scripts,
       './templates.js'
     ])
+    .on('error', handleError)
     .pipe(wrap('(function(angular){\n\'use strict\';\n<%= contents %>})(window.angular);'))
     .pipe(concat('bundle.js'))
     .pipe(ngAnnotate())
@@ -81,23 +109,20 @@ gulp.task('scripts', ['modules'], () => {
     .pipe(gulp.dest(paths.dist + 'js/'));
 });
 
-// localhost: 8000
-gulp.task('serve', function() {
-    gulp.src(paths.dist)
-        .pipe(webserver({
-            livereload: {
-                enable: true, // need this set to true to enable livereload
-                filter: function(fileName) {
-                    if (fileName.match(/.map$/)) { // exclude all source maps from livereload 
-                        return false;
-                    } else {
-                        return true;
-                    }
-                }
-            }
-        }));
+server.create();
+
+gulp.task('serve', () => {
+  return server.init({
+    files: [root],
+    port: 4000,
+    server: {
+      baseDir: paths.dist
+    }
+  });
 });
 
+
+gulp.task('clean', cb => del(paths.dist + '**/*', cb));
 
 gulp.task('copy', ['clean'], () => {
   return gulp.src(paths.static, { base: 'src' })
@@ -107,25 +132,23 @@ gulp.task('copy', ['clean'], () => {
 gulp.task('watch', ['serve', 'scripts'], () => {
   gulp.watch([paths.scripts, paths.templates], ['scripts']);
   gulp.watch(paths.styles, ['styles']);
+  gulp.watch(paths.templates, ['hint:html']);
+  gulp.watch(paths.scripts, ['style:js']);
 });
 
-gulp.task('firebase', ['styles', 'scripts'], cb => {
-  return exec('firebase deploy', function (err, stdout, stderr) {
-    console.log(stdout);
-    console.log(stderr);
-    cb(err);
-  });
-});
+gulp.task('lint', ['style:js', 'hint:html']);
 
 gulp.task('default', [
   'copy',
   'styles',
+  'lint',
   'serve',
   'watch'
 ]);
 
+gulp.task('start', ['default']);
+
 gulp.task('production', [
   'copy',
-  'scripts',
-  'firebase'
+  'scripts'
 ]);

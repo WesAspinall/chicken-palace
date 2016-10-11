@@ -13,7 +13,7 @@ function AppCtrl() {
   ];
 
 
-};
+}
 
 angular
   .module('app')
